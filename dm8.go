@@ -16,7 +16,7 @@ import (
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 
-	"github.com/encircles/gorm-dm8/clauses"
+	"github.com/Lyfee/gorm-dm8/clauses"
 )
 
 type Config struct {
@@ -175,9 +175,9 @@ func (d Dialector) RewriteLimit(c clause.Clause, builder clause.Builder) {
 			builder.WriteString(strconv.Itoa(offset))
 			builder.WriteString(" ROWS")
 		}
-		if limit := limit.Limit; limit > 0 {
+		if limit := limit.Limit; *limit > 0 {
 			builder.WriteString(" FETCH NEXT ")
-			builder.WriteString(strconv.Itoa(limit))
+			builder.WriteString(strconv.Itoa(*limit))
 			builder.WriteString(" ROWS ONLY")
 		}
 	}
@@ -207,7 +207,7 @@ func (d Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v inter
 func (d Dialector) QuoteTo(writer clause.Writer, str string) {
 	// writer.WriteString(str)
 	// 添加双引号
-	writer.WriteString("\"" + str + "\"")
+	writer.WriteString(`"` + str + `"`)
 }
 
 var numericPlaceholder = regexp.MustCompile(`:(\d+)`)

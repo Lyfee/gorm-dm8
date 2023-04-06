@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"reflect"
+	"context"
 
-	"github.com/encircles/gorm-dm8/clauses"
+	"github.com/Lyfee/gorm-dm8/clauses"
 	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 	"gorm.io/gorm/callbacks"
@@ -14,9 +15,6 @@ import (
 )
 
 func Create(db *gorm.DB) {
-
-	// 可以获取表空间和模式名
-	namer := db.NamingStrategy.(Namer)
 
 	stmt := db.Statement
 	schema := stmt.Schema
@@ -75,7 +73,7 @@ func Create(db *gorm.DB) {
 			stmt.Build("MERGE", "WHEN MATCHED", "WHEN NOT MATCHED")
 		} else {
 			// stmt.AddClauseIfNotExists(clause.Insert{Table: clause.Table{Name: stmt.Table}})
-			stmt.AddClauseIfNotExists(clause.Insert{Table: clause.Table{Name: namer.DmSchemaName + "." + stmt.Table}})
+			stmt.AddClauseIfNotExists(clause.Insert{Table: clause.Table{Name: stmt.Table}})
 			stmt.AddClause(clause.Values{Columns: values.Columns, Values: [][]interface{}{values.Values[0]}})
 			if hasDefaultValues {
 				// stmt.AddClauseIfNotExists(clause.Returning{
@@ -150,9 +148,9 @@ func Create(db *gorm.DB) {
 									insertTo.SetMapIndex(reflect.ValueOf(stmt.Schema.PrioritizedPrimaryField.DBName), reflect.ValueOf(insertID))
 								case reflect.Struct:
 									// 如果切片或数组内是结构体的话，就把自增id复制给主键
-									_, isZero := stmt.Schema.PrioritizedPrimaryField.ValueOf(insertTo)
+									_, isZero := stmt.Schema.PrioritizedPrimaryField.ValueOf(context.TODO(), insertTo)
 									if isZero {
-										stmt.Schema.PrioritizedPrimaryField.Set(insertTo, insertID)
+										stmt.Schema.PrioritizedPrimaryField.Set(context.TODO(), insertTo, insertID)
 									}
 								}
 							}
@@ -161,9 +159,9 @@ func Create(db *gorm.DB) {
 							// 如果是map的话，给map新增一个key value
 							insertTo.SetMapIndex(reflect.ValueOf(stmt.Schema.PrioritizedPrimaryField.DBName), reflect.ValueOf(insertID))
 						case reflect.Struct:
-							_, isZero := stmt.Schema.PrioritizedPrimaryField.ValueOf(insertTo)
+							_, isZero := stmt.Schema.PrioritizedPrimaryField.ValueOf(context.TODO(), insertTo)
 							if isZero {
-								stmt.Schema.PrioritizedPrimaryField.Set(insertTo, insertID)
+								stmt.Schema.PrioritizedPrimaryField.Set(context.TODO(), insertTo, insertID)
 							}
 						}
 
@@ -176,7 +174,7 @@ func Create(db *gorm.DB) {
 								func(field *gormSchema.Field) {
 									switch insertTo.Kind() {
 									case reflect.Struct:
-										if err = field.Set(insertTo, stmt.Vars[boundVars[field.Name]].(sql.Out).Dest); err != nil {
+										if err = field.Set(context.TODO(), insertTo, stmt.Vars[boundVars[field.Name]].(sql.Out).Dest); err != nil {
 											db.AddError(err)
 										}
 									case reflect.Map:
